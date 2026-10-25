@@ -1,0 +1,183 @@
+---
+title: "Lab 3: Barplots for Film Dialogue Analysis"
+author: "Elias Najjar"
+date: "Sep. 17, 2026"
+output: pdf_document
+---
+
+```{r, echo=FALSE}
+# DO NOT EDIT/REMOVE THIS CHUNK
+#  (this code forces R to reduce the file size of images in your knitted document)
+knitr::opts_chunk$set(
+  fig.retina = 1,
+  dev = "png", dpi = 100,
+  fig.asp = .618, fig.width = 6,
+  out.width = "60%"
+)
+```
+
+### Load data and libraries
+I've included some code below to load, restructure, and clean the data we'll use. This chunk also includes the chunk option `echo=FALSE` which hides it in your final submission. *Don't edit the code in this chunk.* 
+
+```{r load-clean-data, echo=FALSE, warning=FALSE, message=FALSE}
+library(tidyverse)
+
+# Load the separate datasets
+fellowship <- read_csv("data/The_Fellowship_Of_The_Ring.csv")
+tt <- read_csv("data/The_Two_Towers.csv")
+rotk <- read_csv("data/The_Return_Of_The_King.csv")
+
+# bind_rows() stacks data frames on top of each other
+lotr_wide <- bind_rows(fellowship, tt, rotk) %>% 
+  # Make the Film column a categorical variable (factor), and put it in the
+  # order the categories appear (so the films are in the correct order)
+  mutate(Film = fct_inorder(Film))
+
+# Make this wide data into long/tidy data
+lotr <- lotr_wide %>% 
+  pivot_longer(cols = c(Female, Male), 
+               names_to = "Gender", values_to = "Words")
+
+lotr_words <- lotr %>%
+  uncount( weights = Words )
+```
+
+### 1. Update the YAML header
+Make appropriate updates to the author and date fields at the very top of your .Rmd file.
+
+
+### 2. Print out the `lotr`
+The `lotr` dataset tracks **the number of words spoken by characters** in the three films that make up the Lord of the Rings (LOTR) trilogy: 1. The Fellowship of the Ring, 2. The Two Towers, 3. The Return of the King.   
+
+```{r}
+lotr
+```
+
+
+### 3. The `lotr_words` dataset
+First, print out the `lotr_words` dataset,
+
+```{r}
+lotr_words
+```
+
+and then run the following code chunk, and examine the output.
+```{r, message = FALSE}
+lotr_words %>%
+  group_by( Film, Race, Gender ) %>%
+  summarize( Words = n() )
+```
+
+*Are the `lotr` and `lotr_words` datasets related? How are they different?*
+
+lotr shows the number of words spoken by a character, and lotr_words shows each individual word said. Counting the number of words spoken by a character of film, race, and gender gives lotr.
+
+### 4. Words spoken by race
+Use `geom_bar` to make a bar plot of the total number of words spoken by each race across all three movies (i.e., summing up across all three movies). *No stacked barplots allowed*.  Look carefully at both datasets before beginning.
+
+```{r}
+ggplot(lotr_words) +
+  geom_bar(aes(x = Race))
+```
+
+*Which of the two datasets (`lotr` and `lotr_words`) are most appropriate for `geom_bar`? Why?*
+
+lotr_words is because geom_bar counts instances of something.
+
+*Does one race's speech dominate the films?*
+
+No, hobbit and man are both very common and elf is much less common.
+
+### 5. Words spoken by race again
+Remake your plot using the other `geom_` function for making bar plots.
+
+```{r}
+ggplot(lotr) +
+  geom_col(aes(x = Race, y = Words))
+```
+
+### 6. Gender and film
+Does a certain gender dominate a movie? (even though you can probably guess, make a bar plot to look at this). *No stacked barplots allowed*. In fact, make four versions of this plot:
+- filling by Gender
+- filling by Film
+- faceting by Gender
+- faceting by Film
+
+```{r}
+ggplot(lotr) +
+  geom_col(aes(x = Film, y = Words, fill = Gender), position="dodge")
+
+ggplot(lotr) +
+  geom_col(aes(x = Gender, y = Words, fill = Film), position="dodge")
+
+ggplot(lotr) +
+  geom_col(aes(x = Film, y = Words)) +
+  facet_wrap(~Gender)
+
+ggplot(lotr) +
+  geom_col(aes(x = Gender, y = Words)) +
+  facet_wrap(~Film)
+```
+
+*Which bar plot do you prefer? Briefly explain why.*
+
+I prefer filling by gender because this allows us to compare genders for each movie easily.
+
+### 7. Race and film
+Make a bar plot of the number of words spoken by each race in each of the three movies.  Repeat your experiments from above (changing fill or facet by either variable) and include only your favorite plot.
+
+```{r}
+ggplot(lotr) +
+  geom_col(aes(x = Film, y = Words, fill = Race), position="dodge")
+```
+
+*Does the dominant race differ across the three movies?*
+
+The dominant race does differ. The Fellowship of the Ring is dominated by hobbit, The Two Towers by man, and The Return of the King is very close between hobbit and man. Elf is low for all three.
+
+### 8. Race and gender and film
+You need to show `Race`, `Gender`, and `Film` at the same time, but you only have two possible aesthetics (`x` and `fill`), so you'll also need to facet by the third. Play around with different combinations (e.g. try `x = Race`, then `x = Film`) until you find one that tells the clearest story.
+
+Make your plot look as nice as possible by adding a title, subtitle, caption and any other changes you find helpful.
+
+```{r}
+ggplot(lotr) +
+  geom_col(aes(x = Race, y = Words, fill = Gender), position="dodge") +
+  facet_wrap(~Film) +
+  labs(title = "Number of Words Spoken by Each Gender, Race, and Film",
+       subtitle = "Lord of the Rings",
+       caption = "Males dominate the series, with hobbit being most common in The Fellowship of the Ring,\nman in The Two Towers, and hobbit and man in The Return of the King. Elf is low for all.")
+```
+
+*List three takeaways (e.g., patterns, trends, comparisons) about race and gender in the LOTR films*
+
+Males dominate the entire series regardless of race except for elf in The Fellowship of the Ring. Hobbit has the lowest amount of female words; elf and man typically have a decent chunk but hobbit just has a sliver. There are no female words for man in The Fellowship of the Ring; maybe a character is introduced in the other two.
+
+### 9. More films
+Outside of the Lord of the Rings trilogy, you may have seem some coverage of film dialogue analyses (and visualizations) by gender (and other attributes) in popular media.  Some analyses are much more detailed than the ones we've looked at here.  For example, the [Bechdel test](https://en.wikipedia.org/wiki/Bechdel_test) tracks whether (or more generally, how often) two women in a film or text have a conversation about something other than a man. 
+
+More similar to our look at counts of spoken words, [The Pudding](https://pudding.cool/2017/03/film-dialogue/) analyzed over 2,000 screenplays in 2016 and created some interesting data visualizations.  Scroll through the article and notice how the visualizations at the top of the page change as you go. Slide your cursor along the blue-red bar that describes the "Only High-Grossing Films: Ranked in the Top 2,500 by US Box Office"
+
+*Find one blue-ish and one red-ish film that you've watched and report on the percentage of words spoken by female characters, according to their analysis.*
+
+Monsters, Inc. is heavily dominated by males with 96-97% male dialogue; the movie heavily revolves around Mike and Sulley, with a female child who barely speaks and few female characters. Inside Out is 64% female; this movie revolves around 2 female characters trying to return to their headquarters inside a female's brain. I would have expected it to be more than 64% honestly.
+
+### 10. Recreate The Pudding's bar plot
+Look back at the The Pudding's plots labelled "Screenplay Dialogue, Broken-down by Gender".  We can recreate this in ggplot for the LOTR films.
+
+The code below creates *a new dataset* that sums up the words spoken by each gender in each film (across races).  Use this to create a vertical (e.g., rotated 90 degrees) version of the stacked bar plots as on The Pudding.  Then, try adding `coord_flip()` and `geom_hline( yintercept = .5, lty=2)` to your plot to finalize your reproduction.
+
+```{r, message = FALSE}
+lotr_across_race <- lotr %>% 
+  group_by( Film, Gender) %>% 
+  summarize( Words = sum(Words) ) %>% 
+  mutate( Words_prop = Words / sum(Words) )
+
+ggplot(lotr_across_race) +
+  geom_col(aes(x = Film, y = Words_prop, fill = Gender)) +
+  coord_flip() +
+  geom_hline( yintercept = .5, lty=2)
+```
+
+
+

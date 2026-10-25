@@ -1,0 +1,159 @@
+---
+title: "STA 300: Lab 1"
+author: "Elias Najjar"
+date: "3-September-2026"
+output: pdf_document
+---
+
+This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook (a.k.a. Rmd, its file extension). When you execute code within the notebook, the results appear beneath the code. 
+
+### 1. Run a code chunk
+Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Ctrl+Shift+Enter* (Windows) or *Cmd+Shift+Enter* (Mac). 
+
+```{r}
+mean( c(1,5,6,10) )
+```
+
+You can use an RMarkdown document to combine text and code.  It can be used to take notes, write your code, and produce a good-looking, reproducible document that records the work you have done. 
+
+### 2. Update the metadata
+At the very top of the file is a section of YAML *metadata*, or information about what the file is and what it does. The metadata is delimited by three dashes at the start and another three at the end.
+
+**Change the title, author, and date appropriately.**
+
+Keep the `output` line as it is for now, however. Each line in the metadata has a structure. First the *key* ("title", "author", etc), then a colon, and then the *value* associated with the key.  
+
+### 3. Knit your .Rmd file
+
+Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <https://rmarkdown.rstudio.com/lesson-2.html>. HTML is the default and most native output option for RStudio and what we will produce in this lab.
+
+When you click the **Knit** button in the Script toolbar (you may need to hit the down arrow next to **Preview** to see this option; or by choosing File > Knit Document), a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. 
+
+#### What is Preview?
+When you save the notebook, an HTML file containing the code and output will be saved alongside it (click the *Preview* button or press *Ctrl+Shift+K* to preview the HTML file).
+
+The preview shows you a rendered HTML copy of the contents of the editor. Consequently, unlike *Knit*, *Preview* does not run any R code chunks. Instead, the output of the chunk when it was last run in the editor is displayed.
+
+> **You should knit/preview your Rmd file regularly as you work!**
+
+Think of this as "active debugging." It will help you identify where an error or issue occurs (i.e., sometime since you last test knit your file) and helps you avoid having to search through your entire .Rmd to find the issue.
+
+
+### 4. Insert a code chunk
+A *code chunk* is a specially delimited section of the file. You can add one by moving the cursor to a blank line and pressing *Ctrl+Alt+I* (Windows) or *Cmd+Option+I* (Mac), or by choosing Code > Insert Chunk from the RStudio menu. When you do, an empty chunk will appear in your file.
+
+**Add a code chunk on the line below, and include this code: 4 + 4** 
+
+```{r}
+4 + 4
+```
+
+
+Code chunks are delimited by three backticks (found to the left of the 1 key on US and UK keyboards) at the start and end. The opening backticks also have a pair of braces and the letter `r`, to indicate what language the chunk is written in (Aside: Rmd's can even incorporate different coding languages!). 
+
+You write your code inside the code chunks. You can write your notes and other text around them, as in this lab assignment.
+
+> **Reminder**: Knit your document to check that you haven't introduced errors!
+
+### 5. Load libraries (a.k.a. packages)
+
+To begin we must load some libraries we will be using. If we do not load them, R will not be able to find the functions contained in these libraries. The tidyverse includes ggplot and other tools. We also load the socviz and gapminder libraries.
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(gapminder)
+library(here)
+library(tidyverse)
+
+library(socviz)
+```
+
+Here the braces at the start of the code chunk have some additional options set in them. There is the language, `r`, as before. This is required. 
+
+Then there is the word `setup`, which is a label for your code chunk. Labels are useful to briefly say what the chunk does. Label names must be unique (no two chunks in the same document can have the same label) and cannot contain spaces. 
+
+Then, after the comma, an option is set: `include=FALSE`. This tells R to run this code but not to include the output in the final document. 
+
+If you try to load a library/package that has not been installed yet, you will encounter an error:
+
+```{r try_uninstalled_library, eval=FALSE}
+library(rgl) ## useful for 3D scatterplots, etc.
+```
+
+We can install packages using the install.packages() function (or find the analogous option in RStudio menus):
+```{r install_library, eval = FALSE, echo = TRUE}
+install.packages("rgl")
+```
+
+### 6. Navigating your .Rmd file
+Click the *Outline* button in the top right of the Script editor window.  This outline is populated with the headings and subheadings (lines of text that begin with hashtags) that appear in this document.  Clicking on the items in the outline will you take you to the analogous section in your Rmd file.
+
+Click the text or up/down arrows near the left side of the bottom toolbar in the Script editor window.  You can use this list to navigate to elements in your outline, as well as code chunks (note that the labels appear here as well).
+
+
+### 7. Code for a scatter plot
+
+Access the help file for a dataset that is available by default in RStudio:
+```{r helpfile, eval=FALSE}
+? mtcars
+```
+
+and here's what the first couple rows of that dataset look like:
+```{r look}
+head(mtcars)
+```
+
+
+Let's use ggplot to make a simple plot of this data:
+```{r mtcars_scatterplot}
+ggplot( mtcars,
+        aes( x = wt,
+             y = mpg )) +
+  geom_point(aes(col = as.factor(cyl)))
+```
+
+**What does this plot show?  What variables are used and what general trends do you notice?**
+
+This plot shows the relationship between the miles per gallon of a car with its weight, while showing the difference between numbers of cylinders. There is a clear negative relationship, the higher the weight of a car, the less miles per gallon it can go. It also shows that the number of cylinders in a car is associated with these variables as well. The lightest cars use 4 cylinders, the heaviest use 8, and ones in the middle use 6.
+
+> **Reminder**: Have you knit your document to check that you haven't introduced errors?
+
+### 8. A new scatterplot
+Using the cars dataset, swap out each of the variables, `wt, mpg` and `cyl` for ones of your choice.  You can also try swapping out the extra channel (color: `col`) for shape or size.
+
+**Insert a new chunk below with code for your updated figure.** Remember that you can also label your code chunk.
+
+```{r}
+ggplot( mtcars,
+        aes( x = hp,
+             y = qsec )) +
+  geom_point(aes(col = as.factor(gear)))
+```
+
+
+
+> **Reminder**: Knit your document to check that you haven't introduced errors!
+
+**In words, what does this plot show?  What variables are used and what general trends do you notice?** It's ok if there's no clear trend.
+
+This shows the relationship between the 1/4 mile time of a car and its horsepower, while labeling by number of gears. There is a negative trend, meaning the higher the horsepower, the less time it takes to go a 1/4 mile. It also seems that the cars with 4 gears have less horsepower than ones with 3, and the ones with 5 are pretty spread out but with much lower 1/4 mile times.
+
+### 9. Submission instructions
+Change the output type in the metadata at the top of this file to "pdf_document".  Knit your document and download the pdf.  Upload this pdf to Canvas in the Lab 1 assignment.  
+
+Your knitted pdf is the primary document we will look at when grading (so be sure it looks the way you want); in some cases, we may also access your Rmd files through Posit Cloud (i.e., you do not need to upload them to Canvas) to assess any coding issues or errors.
+
+
+### Additional reading
+
+[More keyboard shortcuts for RStudio](https://support.posit.co/hc/en-us/articles/200711853-Keyboard-Shortcuts-in-the-RStudio-IDE)
+
+[More code chunk options](https://yihui.org/knitr/options/)
+
+[Rmd cheatsheets](https://rmarkdown.rstudio.com/lesson-15.HTML)
+- this can also be accessed from RStudio menus: File > Help > Cheatsheets > R Markdown Cheat Sheet 
+
+
+
+

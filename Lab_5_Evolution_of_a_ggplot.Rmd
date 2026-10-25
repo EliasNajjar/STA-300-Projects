@@ -1,0 +1,491 @@
+---
+title: "Lab 5: Evolution of a ggplot"
+author: "Elias Najjar"
+output: 
+  pdf_document:
+    number_sections: true
+---
+
+```{r, echo=FALSE}
+
+# Don't edit this chunk! 
+
+##  This should help us avoid running into the
+##  limit on RAM/memory
+
+knitr::opts_chunk$set(
+  dev = "png", dpi = 150, 
+  out.width="75%", fig.align = "center"
+)
+```
+
+In this lab, we'll practice recreating some early versions of a nice looking plot that describes how student-to-teacher ratios in primary education vary across the world.  **The process of creating a detailed, visually appealing final plot is iterative and additive**, as we will see here.  
+
+You should be *following a similar process as you work to create your submission for the Mini Project \#1* (i.e., swapping out and layering geoms, adjusting axes to include relevant comparison points, and adding some annotations).
+
+The data comes from [the \#TidyTuesday project](https://github.com/rfordatascience/tidytuesday/tree/main/data/2019/2019-05-07) and was shared on May 7, 2019.  It contains the UNESCO Institute of Statistics' country-level data on the number of teachers and teacher-to-student ratios in primary and secondary education courses (roughly, elementary and high school respectively).
+Our goal will be to **describe how the variation in student-to-teacher ratios in primary schools across continents (and we want to show variability within each continent).**
+
+I've included some lines below to read in the data.  Your job is to recreate the plots in the *Lab_5_Target_Plots.pdf* file (see the Files tab in the bottom right panel).
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+
+# Load libraries
+
+library(tidyverse)
+library(ggrepel)
+library(ggsci)
+
+
+# Load the data
+
+df_students <- readr::read_csv("https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2019/2019-05-07/student_teacher_ratio.csv")
+
+# We'll also need to map each country to a continent... 
+# which is not included in the `df_students` data... 
+#   so let's merge on another dataset:
+
+df_world_tile <- readr::read_csv("https://gist.githubusercontent.com/maartenzam/787498bbc07ae06b637447dbd430ea0a/raw/9a9dafafb44d8990f85243a9c7ca349acd3a0d07/worldtilegrid.csv") 
+```
+
+
+# Data wrangling
+The chunk in this section creates the dataset you'll use in all your plots.  *Describe in words what this code chunk does.*
+```{r}
+df_ratios <- df_students %>% 
+  filter( indicator == "Primary Education" ) %>%
+  group_by(country) %>% 
+  filter(year == max(year)) %>%
+  inner_join( df_world_tile,
+              by = join_by( country_code == alpha.3 )) 
+```
+
+This filters the students data set to courses in primary education and picks the rows with the latest year for each country. It then joins the world_tile dataset by matching the 3 character country code that is shared between the datasets. Inner join makes it so that only country codes that are in both datasets appear in the final dataset.
+
+# Basic boxplot
+```{r, eval = FALSE}
+
+# Consider modifying the following example code:
+#   ASIDE: put your modified code in its own chunk OR
+#           remove the `eval = FALSE` flag on this chunk
+
+mylabs <- labs( title = "Example title",
+                caption = "Data source" )
+mythemes <- theme( plot.title = element_text( 
+  face = "italic", size = 20, hjust = .5 ))
+
+ggplot(df_ratios,
+       aes( x, -y, col=region) ) + 
+  geom_point()
+  mylabs +
+  mythemes
+```
+
+```{r}
+mylabs <- labs(title = "The Evolution of a ggplot",
+               caption = "Data: UNESCO Institute for Statistics")
+mythemes <- theme( plot.title = element_text(
+  face = "bold", size = 15, hjust = .5 ))
+
+ggplot(df_ratios) +
+  geom_boxplot(aes(x = region, y = student_ratio)) +
+  mylabs +
+  mythemes
+```
+
+## A more sensible ordering
+
+```{r}
+ggplot(df_ratios) +
+  geom_boxplot(aes(x = reorder(region, student_ratio, decreasing=TRUE), y = student_ratio)) +
+  mylabs +
+  mythemes
+```
+
+## Flipped axes
+
+```{r}
+ggplot(df_ratios) +
+  geom_boxplot(aes(x = reorder(region, student_ratio, decreasing=TRUE), y = student_ratio)) +
+  coord_flip() +
+  mylabs +
+  mythemes
+```
+
+## A relevant minimum
+
+```{r, eval = FALSE}
+
+# Some more example code:
+
+ggplot(df_ratios,
+       aes( x, -y, col=region) ) + 
+  geom_point() +
+  scale_x_continuous( limits = c(-10,max(df_ratios$x)) ) +
+  mylabs +
+  mythemes
+```
+
+```{r}
+ggplot(df_ratios) +
+  geom_boxplot(aes(x = reorder(region, student_ratio, decreasing=TRUE), y = student_ratio)) +
+  scale_y_continuous(limits = c(0,max(df_ratios$student_ratio))) +
+  coord_flip() +
+  mylabs +
+  mythemes
+```
+
+## Color! Theme!  Better indication of the minimum!
+
+```{r, eval = FALSE}
+
+# Some more example code:
+
+plot_template <- ggplot(df_ratios,
+       aes( x, -y, col=region) ) + 
+  #geom_point() +
+  scale_x_continuous( limits = c(-10,max(df_ratios$x)),
+                      breaks = c(-10, seq(0,30, by=5))) +
+  scale_color_uchicago() + ## from the ggsci library
+  mylabs +
+  mythemes
+
+plot_template +
+  geom_point()
+```
+
+```{r}
+mylabs <- labs(title = "The Evolution of a ggplot",
+               caption = "Data: UNESCO Institute for Statistics",
+               x = "",
+               y = "Student to teacher ratio")
+
+ggplot(df_ratios) +
+  geom_boxplot(aes(x = reorder(region, student_ratio, decreasing=TRUE), y = student_ratio, col = region)) +
+  scale_y_continuous(limits = c(0,max(df_ratios$student_ratio))) +
+  coord_flip() +
+  scale_color_uchicago() +
+  theme_classic() +
+  theme(legend.position = "none") +
+  mylabs +
+  mythemes
+```
+
+# Beyond the boxplot
+
+## Distribution shapes
+
+```{r}
+ggplot(df_ratios) +
+  geom_violin(aes(x = reorder(region, student_ratio, decreasing=TRUE), y = student_ratio, col = region)) +
+  scale_y_continuous(limits = c(0,max(df_ratios$student_ratio))) +
+  coord_flip() +
+  scale_color_uchicago() +
+  theme_classic() +
+  theme(legend.position = "none") +
+  mylabs +
+  mythemes
+```
+
+## Countries
+
+```{r}
+ggplot(df_ratios) +
+  geom_point(aes(x = reorder(region, student_ratio, decreasing=TRUE), y = student_ratio, col = region)) +
+  scale_y_continuous(limits = c(0,max(df_ratios$student_ratio)),
+                     breaks = c(1, 20, 40, 60, 80)) +
+  coord_flip() +
+  scale_color_uchicago() +
+  theme_classic() +
+  theme(legend.position = "none") +
+  mylabs +
+  mythemes
+```
+
+## Fix overplotting
+
+```{r}
+ggplot(df_ratios) +
+  geom_point(aes(x = reorder(region, student_ratio, decreasing=TRUE), y = student_ratio, col = region), alpha = .3) +
+  scale_y_continuous(limits = c(0,max(df_ratios$student_ratio)),
+                     breaks = c(1, 20, 40, 60, 80)) +
+  coord_flip() +
+  scale_color_uchicago() +
+  theme_classic() +
+  theme(legend.position = "none") +
+  mylabs +
+  mythemes
+```
+
+## Better fix for overplotting
+
+```{r}
+ggplot(df_ratios) +
+  geom_jitter(aes(x = reorder(region, student_ratio, decreasing=TRUE), y = student_ratio, col = region), alpha = .3, height = 0, width = .2) +
+  scale_y_continuous(limits = c(0,max(df_ratios$student_ratio)),
+                     breaks = c(1, 20, 40, 60, 80)) +
+  coord_flip() +
+  scale_color_uchicago() +
+  theme_classic() +
+  theme(legend.position = "none") +
+  mylabs +
+  mythemes
+```
+
+## Return of the boxplot
+
+```{r}
+ggplot(df_ratios, aes(x = reorder(region, student_ratio, decreasing=TRUE), y = student_ratio)) +
+  geom_boxplot() +
+  geom_jitter(aes(col = region), alpha = .3, height = 0, width = .2) +
+  scale_y_continuous(limits = c(0,max(df_ratios$student_ratio)),
+                     breaks = c(1, 20, 40, 60, 80)) +
+  coord_flip() +
+  scale_color_uchicago() +
+  theme_classic() +
+  theme(legend.position = "none") +
+  mylabs +
+  mythemes
+```
+
+# Final tweaks
+
+## Continental averages
+```{r, eval = FALSE}
+
+# Some more example code:
+
+ggplot( df_ratios,
+        aes( x = region,
+             y = student_ratio )) +
+  geom_jitter(alpha=.5) +
+  stat_summary(fun = mean, geom = "point", size = 5)
+
+```
+
+```{r}
+ggplot(df_ratios, aes(x = reorder(region, student_ratio, decreasing=TRUE), y = student_ratio, col = region)) +
+  geom_jitter(alpha = .3, height = 0, width = .2) +
+  stat_summary(fun = mean, geom = "point", size = 5) +
+  scale_y_continuous(limits = c(0,max(df_ratios$student_ratio)),
+                     breaks = c(1, 20, 40, 60, 80)) +
+  coord_flip() +
+  scale_color_uchicago() +
+  theme_classic() +
+  theme(legend.position = "none") +
+  mylabs +
+  mythemes
+```
+
+## World average
+
+```{r, eval = FALSE}
+
+# Some more example code:
+
+world_avg <- mean(df_ratios$student_ratio)
+
+ggplot( df_ratios,
+        aes( x = region,
+             y = student_ratio )) +
+  geom_jitter(alpha=.5) +
+  stat_summary(fun = mean, geom = "point", size = 5) +
+  geom_segment( data = df_ratios %>%
+                  group_by(region) %>%
+                  summarize( student_ratio = mean(student_ratio) ),
+                yend = world_avg )
+```
+
+```{r}
+world_avg <- mean(df_ratios$student_ratio)
+
+ggplot(df_ratios, aes(x = reorder(region, student_ratio, decreasing=TRUE), y = student_ratio, col = region)) +
+  geom_jitter(alpha = .3, height = 0, width = .2) +
+  stat_summary(fun = mean, geom = "point", size = 5) +
+  geom_segment(data = df_ratios %>%
+                  group_by(region) %>%
+                  summarize(student_ratio = mean(student_ratio)),
+                yend = world_avg) +
+  geom_hline(yintercept = world_avg, linewidth = .3) +
+  scale_y_continuous(limits = c(0,max(df_ratios$student_ratio)),
+                     breaks = c(1, 20, 40, 60, 80)) +
+  coord_flip() +
+  scale_color_uchicago() +
+  theme_classic() +
+  theme(legend.position = "none") +
+  mylabs +
+  mythemes
+```
+
+## Annotations
+
+```{r}
+# Some helpful settings and summary statistics we'll 
+#   use to annotate our plots:
+
+annotate_text_size <- 2.5
+
+asia_avg <- df_ratios %>% 
+  filter(region == "Asia") %>% 
+  pull(student_ratio) %>% 
+  mean()
+
+africa_max <- df_ratios %>%
+  filter( region == "Africa" ) %>%
+  pull(student_ratio) %>%
+  max()
+
+africa_min <- df_ratios %>%
+  filter( region == "Africa" ) %>%
+  pull(student_ratio) %>%
+  min()
+```
+
+
+```{r}
+## The base plot I'll add annotations to (for the purposes of
+##    our example code below only)
+
+plot_for_annotations <- ggplot( df_ratios,
+        aes( x = reorder( region, student_ratio,
+                          decreasing = TRUE ),
+             y = student_ratio )) +
+  geom_point(position = position_jitter(seed = 42), alpha=.5) +
+  stat_summary(fun = mean, geom = "point", size = 5) +
+  coord_flip() +
+  scale_y_continuous(limits = c(1, 90)) +
+  theme_bw()
+```
+
+Choose *ONE* of the following strategies to annotate your plot:
+
+### Option A: `geom_text`, `geom_curve`
+
+```{r}
+
+#
+# Option A:  geom_text, geom_curve
+#
+#  You'll need to add this to your plot and
+#     add the label for the worldwide average
+#
+
+## Code to create the details for our annotations
+
+txt_nent <- data.frame( xstart = 2.6, ystart = 15,
+                        xend = 3 -.1, yend =  asia_avg - .5,
+                        labels = "Continental average ",
+                        hjust = 1, vjust = .5 )
+
+txt_tries <- data.frame( xstart = 1.3, ystart = 8,
+                        xend = 1, yend = 13,
+                        labels = "Countries \n per continent \n",
+                        hjust = .5, vjust = 0 )
+txt_tries2 <- txt_tries %>%
+    mutate( xend = 1.76, yend = 18, labels = "")
+
+txt_max <- data.frame( xstart = 1.3, ystart = 77,
+                       xend = 1, yend = africa_max - 1,
+                       labels = "The Central African Republic has by far\nthe most students per teacher",
+                       hjust = .5, vjust = 0 )
+
+txt_world <- data.frame( xstart = 5, ystart = 32,
+                        xend = 4.5, yend =  24,
+                        labels = "Worldwide average:\n23.5 students per teacher",
+                        hjust = 0, vjust = .5 )
+
+arrows_and_text <- rbind( txt_nent,
+                          txt_tries, txt_tries2,
+                          txt_max,
+                          txt_world)
+
+
+# plot_for_annotations +
+# 
+#     geom_text( data = arrows_and_text,
+#                aes( x = xstart, y = ystart,
+#                     label = labels,
+#                     hjust = hjust, vjust = vjust ),
+#                col = "black",
+#                size = annotate_text_size ) +
+# 
+#     geom_curve( data = arrows_and_text,
+#                 aes(x = xstart, y = ystart,
+#                     xend = xend, yend = yend),
+#                 arrow = arrow(length = unit(0.08, "inch")),
+#                 size = 0.5, color = "gray20", curvature = -0.3 )
+```
+
+```{r}
+world_avg <- mean(df_ratios$student_ratio)
+mylabs <- labs(title = "The Evolution of a ggplot",
+               caption = "Data: UNESCO Institute for Statistics",
+               x = "",
+               y = "Student to teacher ratio")
+
+ggplot(df_ratios, aes(x = reorder(region, student_ratio, decreasing=TRUE), y = student_ratio, col = region)) +
+  geom_jitter(alpha = .3, height = 0, width = .2) +
+  stat_summary(fun = mean, geom = "point", size = 5) +
+  geom_segment(data = df_ratios %>%
+                  group_by(region) %>%
+                  summarize(student_ratio = mean(student_ratio)),
+                yend = world_avg) +
+  geom_hline(yintercept = world_avg, linewidth = .3) +
+  scale_y_continuous(limits = c(0,max(df_ratios$student_ratio)),
+                     breaks = c(1, 20, 40, 60, 80)) +
+  scale_color_uchicago() +
+  theme_classic() +
+  theme(legend.position = "none") +
+  mylabs +
+  mythemes +
+  coord_flip() +
+  geom_text( data = arrows_and_text,
+               aes( x = xstart, y = ystart,
+                    label = labels,
+                    hjust = hjust, vjust = vjust ),
+               col = "black",
+               size = annotate_text_size ) +
+  geom_curve( data = arrows_and_text, 
+              aes(x = xstart, y = ystart, 
+                  xend = xend, yend = yend),
+              arrow = arrow(length = unit(0.08, "inch")), 
+              size = 0.5, color = "gray20", curvature = -0.3 )
+```
+
+### Option B: `geom_text_repel`
+Note: there is some randomness in this function (just like `geom_jitter`), so it's ok if you can't match the target plot exactly.
+
+```{r, eval = FALSE}
+
+#
+# Option B:  geom_text_repel
+#
+#  You'll need to add this to your plot and
+#     add the label for the continental average
+#
+
+repel_pts <- tibble(
+    x = c(4.5, 1.15, 1),
+    y = c(world_avg, africa_max, africa_min), 
+    labels = c( paste("Worldwide average:\n",
+                      round(world_avg,1),
+                      "students per teacher"),
+                "The Central African Republic has by far
+                the most students per teacher",
+                "Countries\nper continent" ))
+
+
+plot_for_annotations +
+  
+    geom_text_repel( data = repel_pts,
+                     aes( x=x, y=y, label=labels ),
+                     col = "black", size = annotate_text_size,
+                     box.padding = 1.5, max.overlaps = Inf, 
+                     nudge_y = c(15,0,0), nudge_x = c(0,.25,0),
+                     min.segment.length = 0, 
+                     arrow = arrow(length = unit(0.008, "npc")), 
+                     segment.curvature = -.3 )
+
+```
+
+

@@ -1,0 +1,89 @@
+---
+title: "Mini Project #1: Actionable Meals of the Top Cuisines"
+author: "Elias Najjar"
+date: "10/7/2026"
+output:
+  pdf_document:
+    dev: png
+---
+
+What are the most actionable meals (low time to make and high rating) among the top rated cuisines?
+
+## Load Dataset
+
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+library(tidyverse)
+
+knitr::opts_chunk$set( dev = "png", dpi = 150 )
+
+all_recipes <- as_tibble( read.csv("all_recipes.csv",
+                                       row.names = 1) )
+```
+
+## Rank cuisines on ratings
+
+I first filtered the data to recipes with at least 10 ratings, to exclude ratings that may be biased by a few ratings. I also exclude rows without data on cuisine so because I want to pick the top cuisines. I also pick cuisines that have at least 10 recipes so that a cuisine is not skewed by a few good or bad recipes. I then find the mean average rating of the recipes of each cuisine to find the overall rating of the cuisine.
+
+```{r message=FALSE, warning=FALSE}
+pop_cuisines <- all_recipes %>%
+  group_by(cuisine) %>%
+  filter(total_ratings >= 10 & !is.na(cuisine) & n() >= 10) %>%
+  summarize(avg_cuisine_rating = mean(avg_rating))
+
+pop_cuisines
+```
+
+## Find top cuisines
+
+Now I have cuisines I could use, but I want the ones with the highest ratings.
+
+```{r message=FALSE, warning=FALSE}
+pop_cuisines <- pop_cuisines %>%
+  slice_max(avg_cuisine_rating, n = 3)
+
+pop_cuisines
+```
+
+## Visualizing the Most Actionable Meals
+
+I graph the total time and average rating of each recipe of each of the top 3 cuisines, and indicate cuisine by color. For more reasonble time frames, and better visualization, I first filter to recipes that take less than 3 hours to make, and that have at least 10 ratings.
+
+```{r message=FALSE, warning=FALSE}
+levels(all_recipes$cuisine) = pop_cuisines$cuisine
+
+filtered_recipes <- all_recipes %>%
+  filter(total_time <= 180 & total_ratings >= 10 & cuisine %in% pop_cuisines$cuisine)
+
+ggplot(filtered_recipes) +
+  geom_point(aes(x = total_time, y = avg_rating, color = cuisine)) +
+  geom_abline(slope = 0.005, intercept = 4.72) +
+  scale_colour_viridis_d() +
+  scale_x_continuous(breaks = seq(0, 180, 30)) +
+  scale_y_continuous(breaks = seq(4, 5, 0.1)) +
+  labs(title = "Average Rating and Total Time of Recipes",
+       subtitle = "Color represents cuisine",
+       x = "Total Time to Make",
+       y = "Average Rating",
+       color = "Cuisine:") +
+  theme_minimal() +
+  theme(legend.position = "bottom",
+        plot.title = element_text(hjust = 0.5),
+        plot.subtitle = element_text(hjust = 0.5))
+```
+
+## See Most Actionable
+
+Find the most actionable by find points above a diagonal line, separating the top 6 most actionable recipes.
+
+```{r message=FALSE, warning=FALSE}
+filtered_recipes %>%
+  filter(avg_rating > total_time * 0.005 + 4.72)
+```
+
+Now we found the most actionable recipes from the highest rated cuisines.
+
+# Conclusion
+
+The goal was to find the most actionable recipes from the highest rated cuisines. I did that by first finding the highest rated cuisines while filtering out uncommon recipes and cuisines. I then plotted the time and average rating of the recipes of those cuisines, and filtered to the recipes with the lowest time and highest ratings to find the most actionable.
+
+I used contrast in my visualization by using larger text for headings to indicate sections well. I used repetition by using consistent sizes throughout the document and a format of heading -> description -> code -> result. I used alignment by centering the title and subtitle on the plot and placing the legend on the bottom, and by specifying the scales of the x and y axes. I used proximity by grouping and ordering information throughout the document and adjusting the plot to have more centralized information. The plot is appropriately labelled and the breaks on the axes are at significant marks. I used colors that are meant to be easily differentiated with colorblindness. It is clear how the data is filtered and plotted and how the final result was produced. There is also good data to ink ratio with only lines to better indicate the values of a point.

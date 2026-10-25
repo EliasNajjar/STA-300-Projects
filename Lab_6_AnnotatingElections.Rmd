@@ -1,0 +1,146 @@
+---
+title: "Lab 6: Annotating Elections"
+author: "Elias Najjar"
+date: "10/28/2026"
+output:
+  pdf_document
+---
+
+In this lab, you'll get some more experience working with annotations.
+
+```{r, message=FALSE, warning=FALSE, echo=FALSE}
+
+knitr::opts_chunk$set(
+  dev = "png", dpi = 150, 
+  out.width="75%", fig.align = "center",
+  fig.width = 10, fig.height = 6
+)
+
+library(tidyverse)
+library(socviz)
+library(ggrepel)
+```
+
+
+# Print out 10 randomly sampled rows from the `elections_historic` dataset
+
+```{r}
+elections_historic %>%
+  slice_sample(n = 10)
+```
+
+
+# Recreate the plot from the lecture notes
+
+```{r warning=FALSE}
+ggplot(elections_historic,
+        aes(x = popular_pct,
+            y = ec_pct,
+            label = winner_label)) +
+  geom_hline(yintercept = .5, size = 1.4, color = "gray80") +
+  geom_vline(xintercept = .5, size = 1.4, color = "gray80") +
+  geom_point() +
+  geom_text_repel() +
+  scale_x_continuous(labels = scales::percent) +
+  scale_y_continuous(labels = scales::percent) +
+  labs(x = "Winner's share of Popular Vote",
+       y = "Winner's share of Electoral College Votes",
+       title = "Popular & Electoral College Margins",
+       caption = "Data for 2016 are provisional.")
+```
+
+# Focus the text labels
+
+```{r warning=FALSE}
+ggplot(elections_historic,
+        aes(x = popular_pct,
+            y = ec_pct)) +
+  geom_hline(yintercept = .5, size = 1.4, color = "gray80") +
+  geom_vline(xintercept = .5, size = 1.4, color = "gray80") +
+  geom_point() +
+  geom_text_repel(data = elections_historic %>%
+                    filter(year >= 1992),
+                  aes(label = winner_label)) +
+  scale_x_continuous(labels = scales::percent) +
+  scale_y_continuous(labels = scales::percent) +
+  labs(x = "Winner's share of Popular Vote",
+       y = "Winner's share of Electoral College Votes",
+       title = "Popular & Electoral College Margins",
+       caption = "Data for 2016 are provisional.")
+```
+
+# Color political parties
+
+```{r warning=FALSE}
+ggplot(elections_historic,
+        aes(x = popular_pct,
+            y = ec_pct,
+            color = factor(win_party, levels = c("Rep.", "D.-R.", "Dem.", "Whig")))) +
+  geom_hline(yintercept = .5, size = 1.4, color = "gray80") +
+  geom_vline(xintercept = .5, size = 1.4, color = "gray80") +
+  geom_point() +
+  geom_text_repel(data = elections_historic %>%
+                    filter(year >= 1992),
+                  aes(label = winner_label)) +
+  scale_x_continuous(labels = scales::percent) +
+  scale_y_continuous(labels = scales::percent) +
+  labs(x = "Winner's share of Popular Vote",
+       y = "Winner's share of Electoral College Votes",
+       title = "Popular & Electoral College Margins",
+       caption = "Data for 2016 are provisional.",
+       color = "Party")
+```
+
+# Highlighting rectangle
+
+```{r warning=FALSE}
+ggplot(elections_historic,
+        aes(x = popular_pct,
+            y = ec_pct)) +
+  geom_hline(yintercept = .5, size = 1.4, color = "gray80") +
+  geom_vline(xintercept = .5, size = 1.4, color = "gray80") +
+  geom_point() +
+  geom_text_repel(data = elections_historic %>%
+                    filter(year >= 1992),
+                  aes(label = winner_label)) +
+  annotate(geom = "rect",
+           xmin = -Inf, xmax = .5,
+           ymin = .5, ymax = Inf,
+           fill = "red", alpha = 0.2) +
+  annotate(geom = "text",
+            x = .32, y = .8,
+            label = "Presidents who won\nwith electoral vote,\nbut did not have the\nmajority popular vote.",
+            hjust = 0) +
+  scale_x_continuous(labels = scales::percent) +
+  scale_y_continuous(labels = scales::percent) +
+  labs(x = "Winner's share of Popular Vote",
+       y = "Winner's share of Electoral College Votes",
+       title = "Popular & Electoral College Margins",
+       caption = "Data for 2016 are provisional.")
+```
+
+# Make a Cleveland dot plot
+
+```{r}
+ggplot(elections_historic) +
+  geom_point(aes(x = popular_pct, y = reorder(year, popular_pct))) +
+  labs(x = "Winner's share of Popular Vote",
+       y = "Year",
+       title = "Popular Vote by Year",
+       caption = "Data for 2016 are provisional.")
+```
+
+# Cleveland dot plot
+
+```{r}
+ggplot(elections_historic) +
+  geom_point(aes(x = popular_pct,
+                 y = reorder(year, popular_pct),
+                 color = ifelse(popular_pct >= .5 | ec_pct <= .5, "Other", "Majority Electoral Vote but not Popular Vote"))) +
+  labs(x = "Winner's share of Popular Vote",
+       y = "Year",
+       title = "Popular Vote by Year",
+       caption = "Data for 2016 are provisional.",
+       color = NULL) +
+  theme(legend.position = "bottom")
+```

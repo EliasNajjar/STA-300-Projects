@@ -1,0 +1,202 @@
+---
+title: "Lab 2: Make a plot"
+author: "Elias Najjar"
+date: "9/10/26"
+output: html_document
+---
+
+In this lab, you will get some practice using `ggplot`'s syntax for mapping variables in our data to aesthetic elements in a scatter plot.
+
+*All instructions ask you to modify the plot created in the previous steps, unless explicitly stated otherwise*
+
+
+# Load libraries
+```{r setup, message=FALSE, warning=FALSE}
+library(tidyverse)
+library(gapminder)
+library(dplyr)
+```
+
+# Examine the Gapminder Data
+Print out the gapminder data below to remind yourself of the data format and variable names (remember that you can also pull up the help file by typing `? gapminder` in the console below).
+
+```{r gapminder}
+gapminder
+```
+
+Write code to create each of the following plots described below.  You will need to make a new code chunk for each plot.  
+
+> Remember to work in small chunks and test your code (and whether your .Rmd will knit as you expect) periodically and often!
+
+## 1. GDP and Life Expectancy
+
+Create a scatter plot (using `geom_point()`) of GDP per Capita (on the x-axis) and Life Expectancy (on the y-axis). 
+
+```{r}
+ggplot(data = gapminder,
+       aes(x = gdpPercap,
+           y = lifeExp)) +
+  geom_point()
+```
+
+
+
+## 2. Log scale (scatterplot)
+Adjust the plot so that the x-axis scale is in log units rather than raw GDP, and properly label the axes. 
+
+```{r}
+ggplot(data = gapminder,
+       aes(x = log(gdpPercap),
+           y = lifeExp)) +
+  geom_point() +
+  labs(x = "Log GDP Per Capita",
+       y = "Life Expectancy")
+```
+
+
+
+## 3. Narrow in on the Oceanic countries
+Using the `filter()` function, narrow the scope of your scatter plot to only include countries in the Oceania continent. *Hint:* Use `==` and not `=` when asking `filter` to pick a particular value of `continent`.
+
+Here's some example code using the `filter` function:
+```{r, eval=FALSE}
+filter( gapminder, country == "United States")
+```
+or equivalently (using a pipe operator from the `dplyr` package),
+```{r, eval=FALSE}
+gapminder %>%
+  filter( country == "United States")
+```
+
+```{r}
+ggplot(data = filter(gapminder, continent == "Oceania"),
+       aes(x = log(gdpPercap),
+           y = lifeExp)) +
+  geom_point() +
+  labs(x = "Log GDP Per Capita",
+       y = "Life Expectancy")
+```
+
+
+## 4. Overall trend
+Add an overall *linear* trend line to your plot.
+
+```{r}
+ggplot(data = dplyr::filter(gapminder, continent == "Oceania"),
+       aes(x = log(gdpPercap),
+           y = lifeExp)) +
+  geom_point() +
+  geom_smooth(method = lm) +
+  labs(x = "Log GDP Per Capita",
+       y = "Life Expectancy")
+```
+
+
+## 5. Oceanic colors
+Change the color of points and trend line in your plot to colors of your choosing (don't worry about selecting these colors too carefully for this question).
+
+```{r}
+ggplot(data = dplyr::filter(gapminder, continent == "Oceania"),
+       aes(x = log(gdpPercap),
+           y = lifeExp)) +
+  geom_point(color = "blue") +
+  geom_smooth(method = lm, color = "red") +
+  labs(x = "Log GDP Per Capita",
+       y = "Life Expectancy")
+```
+
+
+## 6. Colors by country
+Indicate different countries in your plot by different colors but keep a single overall trend line.
+
+```{r}
+ggplot(data = dplyr::filter(gapminder, continent == "Oceania"),
+       aes(x = log(gdpPercap),
+           y = lifeExp,
+           color = country)) +
+  geom_point() +
+  geom_smooth(method = lm, color = "purple") +
+  labs(x = "Log GDP Per Capita",
+       y = "Life Expectancy")
+```
+
+
+## 7. Country shapes
+Indicate different countries in your plot by different shapes (all points should be the same color).
+
+```{r}
+ggplot(data = dplyr::filter(gapminder, continent == "Oceania"),
+       aes(x = log(gdpPercap),
+           y = lifeExp,
+           shape = country)) +
+  geom_point(color = "blue") +
+  geom_smooth(method = lm, color = "red", aes(group = 1)) +
+  labs(x = "Log GDP Per Capita",
+       y = "Life Expectancy")
+```
+
+
+## 8. In the Americas
+Recreate your scatter plot from Part 6 for countries in the Americas continent. 
+
+```{r}
+ggplot(data = dplyr::filter(gapminder, continent == "Americas"),
+       aes(x = log(gdpPercap),
+           y = lifeExp,
+           color = country)) +
+  geom_point() +
+  geom_smooth(method = lm, color = "black") +
+  labs(x = "Log GDP Per Capita",
+       y = "Life Expectancy")
+```
+
+
+**How many colors does `ggplot` include in its legend?  Is it easy to tell the difference between the countries in your plot?**
+
+There are 25 colors for the 25 different countries. It is not easy to tell the difference because the difference between the colors are small.
+
+## 9. US vs. the Americas
+Let's simplify this plot by singling out the US.  Use the following code, which singles out Europe in a scatterplot of life expectancy by population, as an example.
+
+```{r, eval = FALSE }
+ggplot( gapminder,
+        aes( pop,
+             lifeExp )) + 
+  geom_point( aes(color = (continent == "Europe") )) +
+  scale_x_log10() 
+```
+
+```{r}
+ggplot(data = dplyr::filter(gapminder, continent == "Americas"),
+       aes(x = log(gdpPercap),
+           y = lifeExp)) +
+  geom_point(aes(color = country == "United States")) +
+  geom_smooth(method = lm, color = "black") +
+  labs(x = "Log GDP Per Capita",
+       y = "Life Expectancy")
+```
+
+
+## 10. Clean up
+Tidy up this plot as best you can: e.g., give it nice x- and y- labels, as well as a title and caption.  
+
+```{r}
+ggplot(data = dplyr::filter(gapminder, continent == "Americas"),
+       aes(x = log(gdpPercap),
+           y = lifeExp)) +
+  geom_point(aes(color = country == "United States")) +
+  geom_smooth(method = lm, color = "black") +
+  labs(title = "Life Expectancy vs GDP",
+       x = "Log GDP Per Capita",
+       y = "Life Expectancy",
+       caption = "The United States has a very high GDP, but a very low life\nexpectancy relative to what we would expect based on the GDP.")
+```
+
+
+**Are there any elements of the plot you would like to change but don't know how?  What are they?**
+
+I would like to change the legend title and labels to look more professional.
+
+# Submission Instructions
+
+**Change the author and date details at the top of this file.** Knit the completed R Markdown file as an .html file (use the "Knit" button at the top of the script editor window) and upload it to the appropriate assignment on Canvas.

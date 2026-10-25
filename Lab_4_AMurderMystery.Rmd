@@ -1,0 +1,158 @@
+---
+title: "Lab 4: A mu`R`de`R` mystery"
+author: "Elias Najjar"
+date: "9/24/2026"
+output: pdf_document
+---
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+# DO NOT EDIT/REMOVE THIS CHUNK
+knitr::opts_chunk$set(
+  #fig.retina = 1,
+  #dev = "png", dpi = 100,
+  fig.asp = .618, fig.width = 6,
+  out.width = "60%",
+  fig.align = "center"
+)
+```
+
+## Setup
+
+In this lab, you'll get some experience making different types of plots by using different `geom_` functions in ggplot.
+
+### Load libraries and the data
+I've included some code below to load the data we'll use. This chunk also includes the chunk option `echo=FALSE` which hides it in your final submission. *Don't edit the code in this chunk.* 
+
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
+
+library(tidyverse)
+
+crime_scene_report <- as_tibble(read_csv("Data/crime_scene_report.csv"))
+drivers_license <- as_tibble(read_csv("Data/drivers_license.csv"))
+facebook_event_checkin <- as_tibble(read_csv("Data/facebook_event_checkin.csv"))
+get_fit_now_checkin <- as_tibble(read_csv("Data/get_fit_now_checkin.csv"))
+get_fit_now_member <- as_tibble(read_csv("Data/get_fit_now_member.csv"))
+income <- as_tibble(read_csv("Data/income.csv"))
+interview <- as_tibble(read_csv("Data/interview.csv"))
+person <- as_tibble(read_csv("Data/person.csv"))
+```
+
+## Solutions
+Add code chunks (CMD + OPTION + I on Mac; see [more `Rmd` keyboard shortcuts here](https://bookdown.org/yihui/rmarkdown-cookbook/rstudio-shortcuts.html)) to practice and modify any of the functions or lines of code introduced in the tutorial.
+
+Remember that at any time, you can Preview or Knit your `Rmd` file to check that everything will work as intended before you submit your assignment to be graded.
+
+### 1.  Use the `ls()` command to list out all of the datasets loaded in your workspace.  How many datasets are there?
+
+```{r}
+ls()
+```
+
+There are 8 datasets.
+
+### 2.  Which dataset is the largest (here, most rows) and what are its dimensions?
+
+The dataset facebook_event_checkin is the largest with 20011 rows and 4 columns.
+
+### 3.  What types of crimes are recorded in the `crime_scene_report` table?  How many records of each type are there?
+
+```{r}
+table(crime_scene_report$type)
+```
+
+### 4.  Make a bar plot of crime counts by type.
+
+```{r}
+ggplot(crime_scene_report) +
+  geom_bar(aes(x = type))
+```
+
+### 5.  Using the details about the crime given in the very first paragraph at the top of this file, can you change the code above (the line with the logic symbols) to get your first clue?
+
+```{r}
+crime_scene_report %>%
+  filter(date == 20180115 & type == "murder" & city == "R City")
+```
+
+### 6. Make a bar plot that compares crime counts by type in R City to another city of your choosing from the list below?
+
+```{r}
+ggplot(crime_scene_report %>% filter(city %in% c("R City", "Dallas"))) +
+  geom_bar(aes(x = type)) +
+  facet_wrap(~city, ncol = 1)
+```
+
+(Ungraded question): Why have I chosen these cities?
+
+
+### 7.  What are the names of the two witnesses?
+
+```{r}
+crime_scene_report %>%
+  filter(date == 20180115 & type == "murder" & city == "R City") %>%
+  pull(description)
+
+person %>%
+  filter(address_street_name == "Northwestern Dr") %>%
+  arrange(desc(address_number))
+
+person %>%
+  filter(first_name == "Annabel" & address_street_name == "Franklin Ave")
+```
+
+The witnesses are Morty Schapiro and Annabel Miller.
+
+### 8.  Print out the interview transcripts for each of the witnesses.
+
+```{r}
+interview %>%
+  left_join(person, by = join_by(person_id == id)) %>%
+  filter(name == "Morty Schapiro") %>%
+  pull(transcript)
+
+interview %>%
+  left_join(person, by = join_by(person_id == id)) %>%
+  filter(name == "Annabel Miller") %>%
+  pull(transcript)
+```
+
+### 9. Create a single plot that compares the distribution of height across genders and hair colors (you can use any distribution plot type you like).  Do you think this is real data or a toy dataset?  Explain.
+
+```{r}
+ggplot(drivers_license) +
+  geom_histogram(aes(x = height, fill = gender)) +
+  facet_wrap(~hair_color)
+```
+
+This is likely a toy dataset because the heights should be normally distributed, with male average above female.
+
+### 10.  What is the name of the murderer?
+
+```{r}
+get_fit_now_member %>%
+  filter(startsWith(id, "48Z") & membership_status == "gold") %>%
+  left_join(get_fit_now_checkin, by = join_by(id == membership_id)) %>%
+  filter(check_in_date == 20180109) %>%
+  left_join(person, by = join_by(person_id == id)) %>%
+  left_join(drivers_license, by = join_by(license_id == id)) %>%
+  filter(grepl("H42W", plate_number))
+```
+
+Jeremy Bowers is the murderer.
+
+### 11.  What is the name of the true villain behind this crime?
+
+```{r}
+interview %>%
+  left_join(person, by = join_by(person_id == id)) %>%
+  filter(name == "Jeremy Bowers") %>%
+  pull(transcript)
+
+person %>%
+  left_join(drivers_license, by = join_by(license_id == id)) %>%
+  filter(gender == "female" & height >= 65 & height <= 67 & hair_color == "red" & car_make == "Tesla" & car_model == "Model S") %>%
+  left_join(facebook_event_checkin, by = join_by(id == person_id)) %>%
+  filter(event_name == "SQL Symphony Concert" & date >= 20171201 & date <= 20171231)
+```
+
+Miranda Priestly is the true villain.
