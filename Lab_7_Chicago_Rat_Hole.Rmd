@@ -1,0 +1,219 @@
+---
+title: "Lab 7: Chicago Rat Hole"
+author: "Elias Najjar"
+date: "10/29/2026"
+output: 
+  pdf_document:
+    number_sections: true
+---
+
+We'll reproduce some figures from [Granatosky et al. (2025)'s](https://royalsocietypublishing.org/doi/10.1098/rsbl.2025.0343) recent analysis of the famed Chicago Rat Hole. **Unlike the last lab assignment, we'll use this figure as inspiration and I'm not expecting you to match their figure(s) exactly.**
+
+
+```{r, message=FALSE, warning=FALSE, echo=FALSE}
+
+knitr::opts_chunk$set(
+  dev = "png", dpi = 150, 
+  out.width="75%", fig.align = "center",
+  fig.width = 10, fig.height = 6
+)
+library(tidyverse)
+
+species_measures <- readxl::read_excel('rsbl20250343_si_002.xlsx')
+
+```
+
+# Reproduce Figure 1's top left scatter plot
+Open up the "Figure_1" file from this paper.  The top left scatter plot in Figure 1 looks at third digit length (i.e., middle ~finger) vs. snout-to-tail base length (i.e., overall ~height).
+
+## Basic scatter plot
+Make a scatter plot of third digit length by snout-to-tail base length, for ALL species, and let the color of the points correspond to species.
+
+```{r, include = FALSE}
+# Example code:
+#   This dataset has column names that will look nice
+#   in our plot but are kind of a pain to work with
+#   You can rename them or call them directly by 
+#   enclosing them in single quotations
+#     e.g., `Head width (mm)`
+
+ggplot( species_measures,
+        aes( y = Species,
+             x = `Head width (mm)` )) +
+  geom_boxplot()
+```
+
+```{r}
+ggplot(species_measures, aes(x = `Snout-to-tail base length (mm)`, y = `Third digit length (mm)`, color = Species)) +
+  geom_point() +
+  theme(legend.position = "bottom")
+```
+
+## Basic scatter plot with boxplot
+As in Figure 1, add a boxplot for the points/measurements corresponding to the Chicago Rat Hole (ASIDE: Figure 1 doesn't use a traditional boxplot, but a different set of similar summary statistics).
+
+Increase the linewidth (`lwd`) and choose an appropriate level of transparency for your boxplot.
+
+```{r}
+ggplot(species_measures, aes(x = `Snout-to-tail base length (mm)`, y = `Third digit length (mm)`, color = Species)) +
+  geom_point(alpha = .3) +
+  geom_boxplot(data = species_measures %>%
+                 filter(Species == "Chicago Rat Hole") %>%
+                 mutate(`Snout-to-tail base length (mm)` = mean(`Snout-to-tail base length (mm)`)),
+               width = 20,
+               lwd = .75) +
+  theme(legend.position = "bottom")
+```
+
+## Replace Chicago measurements with box plot
+As in Figure 1, remove the points/measurements for the Chicago Rat Hole.
+
+```{r}
+ggplot(species_measures %>%
+         filter(Species != "Chicago Rat Hole"),
+       aes(x = `Snout-to-tail base length (mm)`, y = `Third digit length (mm)`, color = Species)) +
+  geom_point(alpha = .3) +
+  geom_boxplot(data = species_measures %>%
+                 filter(Species == "Chicago Rat Hole") %>%
+                 mutate(`Snout-to-tail base length (mm)` = mean(`Snout-to-tail base length (mm)`)),
+               width = 20,
+               lwd = .75) +
+  theme(legend.position = "bottom")
+```
+
+**Which species appears most likely to have made the Chicago Rat Hole based on this plot?**
+
+Based on this plot, the species that most likely made the Chicago Rat Hole is the scurius niger.
+
+# Facet to create all the scatterplots
+We could replicate (copy/paste) this code for each of the remaining plots in Figure 1 - each replaces third digit length with a different measurement (e.g., headwidth), but still looks at the relationship to snout-to-tail base length
+
+A cleaner way to do this is to pivot our data to a long format and facet across the different y-axis variables.
+
+## Create a long version of the data
+Use the `pivot_longer` function (check the lecture slides, and/or the function's help file and examples listed there).
+
+```{r}
+long_spec <- species_measures %>%
+  pivot_longer(cols = c(`Head width (mm)`, `Forelimb length (mm)`, `Tail base width (mm)`, `Hindpaw length (mm)`, `2.5cm from tail base width (mm)`))
+```
+
+## Facet our basic scatter plot for all species
+Remember that there is a `scales` argument for `facet_wrap` that can help make all the limits on the x-axes more sensible (check the help file for `facet_wrap`).
+
+Add an appropriate level of transparency to fix the overplotting.
+
+```{r}
+ggplot(long_spec, aes(x = `Snout-to-tail base length (mm)`, y = value, color = Species)) +
+  geom_point(alpha = .3) +
+  facet_wrap(~name, scales = "free") +
+  theme(legend.position = "bottom")
+```
+
+## Swap in the Chicago Rat Hole Boxplots
+As in Figure 1, remove the points/measurements for the Chicago Rat Hole and replace them with the relevant boxplot on each facet.
+
+Remember from our example in lecture, you may need to modify the width of the boxplot.
+
+```{r}
+ggplot(long_spec %>%
+         filter(Species != "Chicago Rat Hole"),
+       aes(x = `Snout-to-tail base length (mm)`, y = value, color = Species)) +
+  geom_point(alpha = .3) +
+  geom_boxplot(data = long_spec %>%
+                 filter(Species == "Chicago Rat Hole") %>%
+                 mutate(`Snout-to-tail base length (mm)` = mean(`Snout-to-tail base length (mm)`)),
+               width = 30) +
+  facet_wrap(~name, scales = "free") +
+  theme(legend.position = "bottom")
+```
+
+**Which species appears most likely to have made the Chicago Rat Hole based on these plots?**
+
+# Add variability across snout-to-tail base length
+All our plots so far have used the mean snout-to-tail base length, but we can represent the variability in that measurement too.
+
+## Convex Hull
+A convex hull for a set of 2D data points is the smallest (convex) polgon containing those points.  This lets us represent the `shape` of the measurements for the Chicago Rat Hole without getting overwhelmed by all the original data points.
+
+```{r, include=FALSE}
+## Example code
+
+# Calculate the hulls for each group
+hull_cyl <- mtcars %>%
+  group_by(cyl) %>%
+  slice(chull(mpg, wt))
+
+# Update the plot with a fill group, and overlay the new hulls
+ggplot(mtcars, aes(mpg, wt)) + 
+  geom_point(shape = 21) + 
+  geom_polygon(data = hull_cyl,
+               aes(fill = factor(cyl)),
+               alpha = 0.5)
+
+```
+
+
+
+### Add a measure of center
+The convex hull represents ~min/max (boundaries) of the Chicago Rat Hole's measurements; let's also add a measure of the center of this distribution.  Add a point for the mean measurement to your facetted plots.
+
+```{r warning=FALSE}
+hull_spec <- long_spec %>%
+  filter(Species == "Chicago Rat Hole") %>%
+  group_by(name) %>%
+  slice(chull(`Snout-to-tail base length (mm)`, value))
+
+ggplot(long_spec %>%
+         filter(Species != "Chicago Rat Hole"),
+       aes(x = `Snout-to-tail base length (mm)`, y = value, color = Species)) +
+  geom_point(alpha = .3) +
+  geom_point(data = long_spec %>%
+               filter(Species == "Chicago Rat Hole") %>%
+               group_by(name) %>%
+               summarize(x = mean(`Snout-to-tail base length (mm)`),
+                         y = mean(value)),
+             aes(x = x, y = y), color = "red", size = 2, inherit.aes = FALSE) +
+  geom_polygon(data = hull_spec, fill = NA, color = "red", alpha = .3) +
+  facet_wrap(~name, scales = "free") +
+  theme(legend.position = "bottom")
+```
+
+## 2D Kernel Density Estimate (KDE)
+The convex hull and means above measure the spread and center of the 2D distribution of the Chicago Rat Hole's measurement.  Let's now consider replacing these summary statistics with estimates of the shape of the full 2D distribution, using the `geom_density2d` function which computes a kernel density estimate (KDE) of the observed (empirical) 2D distribution.
+
+```{r, include=FALSE}
+## Example code
+
+ggplot(mtcars, aes(mpg, wt)) + 
+  geom_point(shape = 21) + 
+  geom_density2d( aes(col = factor(cyl)),
+                  alpha = 0.5)
+
+```
+
+## Convex hull vs 2D KDE
+Do the bounds of our KDE's correspond to the convex hulls we created earlier?  Plot them both to see.
+
+```{r warning=FALSE}
+ggplot(long_spec %>%
+         filter(Species != "Chicago Rat Hole"),
+       aes(x = `Snout-to-tail base length (mm)`, y = value, color = Species)) +
+  geom_point(alpha = .3) +
+  geom_point(data = long_spec %>%
+               filter(Species == "Chicago Rat Hole") %>%
+               group_by(name) %>%
+               summarize(x = mean(`Snout-to-tail base length (mm)`),
+                         y = mean(value)),
+             aes(x = x, y = y), color = "red", size = 2, inherit.aes = FALSE) +
+  geom_polygon(data = hull_spec, fill = NA, color = "red", alpha = .3) +
+  geom_density2d(data = long_spec %>%
+                   filter(Species == "Chicago Rat Hole"),
+                 color = "red", alpha = .5) +
+  facet_wrap(~name, scales = "free") +
+  theme(legend.position = "bottom")
+```
+
+**Do the KDEs match the convex hulls?  Which do you prefer?**
+
+The KDEs and convex hulls have similar bounds, but I believe the KDEs do a better job of showing the distribution of the data including where the medians are. The convex hulls could be greatly skewed because they must include all points.
